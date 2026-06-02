@@ -1,6 +1,6 @@
-# CNSD2025
+# CNSD2026
 
-CNSD Code Base for 2025 Batches
+CNSD Code Base for 2026 Batches
 
 Cloud-native architecture is the design or plan for applications and services built specifically to exist in the cloud.  The “Cloud Native Solution Design” course will help the decision-makers cut through all the haze and effectively architect such a solution. The participants will learn to design and rapidly provision cloud-native solutions, a collection of small independent and loosely coupled services.
 
