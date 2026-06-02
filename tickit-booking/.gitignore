@@ -1,0 +1,104 @@
+# Secrets (Factor III)
+.env
+
+# Maven build output
+target/
+
+# Maven wrapper downloads the jar on first run; do not commit it
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+###############################################
+# TickIt — .gitignore
+# Ignores all generated build output, IDE files,
+# secrets, and OS cruft. Source, pom.xml, the
+# Maven wrapper scripts, and IaC files stay tracked.
+###############################################
+
+############### Maven build output ###############
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# The wrapper jar is downloaded on first run; do not commit binaries.
+.mvn/wrapper/maven-wrapper.jar
+
+############### Compiled Java ###############
+*.class
+# Standalone packaged artifacts (the bootable jar lives in target/ anyway)
+*.jar
+*.war
+*.ear
+*.nar
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+############### Secrets / config (12-Factor III) ###############
+.env
+*.env
+!.env.example
+
+############### Logs ###############
+*.log
+logs/
+spring.log
+
+############### Eclipse / Spring Tool Suite ###############
+.classpath
+.project
+.settings/
+bin/
+.factorypath
+.apt_generated/
+.apt_generated_test/
+.springBeans
+.sts4-cache/
+
+############### IntelliJ IDEA ###############
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+############### VS Code ###############
+.vscode/
+
+############### NetBeans ###############
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+############### OS files ###############
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+############### Misc ###############
+*.bak
+*.tmp
+*.swp
+*~

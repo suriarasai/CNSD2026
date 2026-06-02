@@ -1,0 +1,52 @@
+# One tracking IaC file for the whole stack (12-Factor I).
+# Runs on Podman Desktop (podman compose) or Docker Compose unchanged.
+services:
+
+  db:
+    # Factor II: pinned base image tag.
+    image: postgres:16-alpine
+    container_name: tickit-db
+    # Factor III: all config/secrets injected from the git-ignored .env file.
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Named volume mounted at the data dir to survive container restarts.
+      - tickit-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Factor IX: orchestrate startup ordering cleanly.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    # Factor V: image produced by the multi-stage build above.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tickit-app
+    depends_on:
+      db:
+        condition: service_healthy
+    # Factor IV: the DB is an attached resource reached via a decoupled URL.
+    # Inside the compose network the host is the "db" service name.
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    # Factor VII: standard HTTP port binding.
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 40s
+
+volumes:
+  tickit-pgdata:

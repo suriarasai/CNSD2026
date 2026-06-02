@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('TickIt · Events')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+
+<main>
+    <h1>Upcoming Events</h1>
+
+    <div class="alert ok" th:if="${message}" th:text="${message}"></div>
+
+    <p th:if="${events.isEmpty()}" class="muted">No bookable events right now.</p>
+
+    <table th:unless="${events.isEmpty()}">
+        <thead>
+        <tr>
+            <th>Event</th><th>Venue</th><th>Date</th><th>Seats left</th><th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e : ${events}">
+            <td th:text="${e.name}">Name</td>
+            <td th:text="${e.venue}">Venue</td>
+            <td th:text="${#temporals.format(e.eventDate, 'dd MMM yyyy, HH:mm')}">date</td>
+            <td>
+                <span th:text="${e.availableSeats}">0</span> /
+                <span th:text="${e.totalSeats}">0</span>
+            </td>
+            <td><a class="btn" th:href="@{/events/{id}/book(id=${e.id})}">Book</a></td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

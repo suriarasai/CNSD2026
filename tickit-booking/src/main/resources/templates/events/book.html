@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('TickIt · Book')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+
+<main>
+    <h1>Book Tickets</h1>
+
+    <div class="card">
+        <h2 th:text="${event.name}">Event</h2>
+        <p class="muted">
+            <span th:text="${event.venue}">Venue</span> ·
+            <span th:text="${#temporals.format(event.eventDate, 'dd MMM yyyy, HH:mm')}">date</span>
+        </p>
+        <p><strong th:text="${event.availableSeats}">0</strong> seats available</p>
+    </div>
+
+    <div class="alert err" th:if="${error}" th:text="${error}"></div>
+
+    <form th:action="@{/bookings}" th:object="${bookingForm}" method="post" class="form">
+        <input type="hidden" th:field="*{eventId}"/>
+
+        <label>Your name
+            <input type="text" th:field="*{customerName}" placeholder="Ah Girl"/>
+        </label>
+        <span class="field-err" th:if="${#fields.hasErrors('customerName')}" th:errors="*{customerName}"></span>
+
+        <label>Email
+            <input type="email" th:field="*{customerEmail}" placeholder="girl@example.com"/>
+        </label>
+        <span class="field-err" th:if="${#fields.hasErrors('customerEmail')}" th:errors="*{customerEmail}"></span>
+
+        <label>Quantity
+            <input type="number" th:field="*{quantity}" min="1" max="10"/>
+        </label>
+        <span class="field-err" th:if="${#fields.hasErrors('quantity')}" th:errors="*{quantity}"></span>
+
+        <div class="actions">
+            <button type="submit" class="btn">Confirm Booking</button>
+            <a class="btn ghost" th:href="@{/events}">Cancel</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
