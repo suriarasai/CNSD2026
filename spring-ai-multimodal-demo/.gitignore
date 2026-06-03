@@ -1,0 +1,78 @@
+###############################################################################
+# Secrets — never commit credentials
+###############################################################################
+.env
+*.env.local
+
+###############################################################################
+# Maven
+###############################################################################
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# Keep the wrapper jar if you add the Maven wrapper:
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+
+###############################################################################
+# Spring Tool Suite (STS) / Eclipse
+###############################################################################
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+
+# Eclipse annotation/build helpers
+.apt_generated/
+.apt_generated_test/
+.factorypath
+
+# Eclipse JDT / launch configs (optional — uncomment to ignore run configs)
+# *.launch
+
+###############################################################################
+# IntelliJ IDEA (in case someone on the team uses it)
+###############################################################################
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+###############################################################################
+# VS Code
+###############################################################################
+.vscode/
+
+###############################################################################
+# Build output / logs
+###############################################################################
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+*.log
+logs/
+
+###############################################################################
+# OS files
+###############################################################################
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini

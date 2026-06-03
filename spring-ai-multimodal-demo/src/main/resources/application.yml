@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: spring-ai-multimodal-demo
+  servlet:
+    multipart:
+      # Audio clips can be a few MB; raise the upload ceiling.
+      max-file-size: 25MB
+      max-request-size: 25MB
+
+server:
+  port: 8080
+
+# Values resolve from environment variables, which spring-dotenv loads from .env
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+  image:
+    model: ${GEMINI_IMAGE_MODEL:gemini-2.5-flash-image}
+  transcription:
+    model: ${GEMINI_TRANSCRIPTION_MODEL:gemini-2.5-flash}
+  speech:
+    model: ${GEMINI_SPEECH_MODEL:gemini-2.5-flash-preview-tts}
+    voice: ${GEMINI_SPEECH_VOICE:Kore}
+
+logging:
+  level:
+    com.example.multimodal: INFO

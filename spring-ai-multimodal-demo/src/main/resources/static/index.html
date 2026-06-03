@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spring AI · Multimodal Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0c0f0e;
+    --panel: #131816;
+    --panel-2: #181f1c;
+    --line: #243029;
+    --ink: #e9efe9;
+    --muted: #7e8b82;
+    --mint: #74e0a4;
+    --mint-dim: #3f7e5e;
+    --amber: #e0a949;
+    --danger: #e8736b;
+    --radius: 4px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(116,224,164,0.07), transparent 60%),
+      radial-gradient(700px 600px at -5% 110%, rgba(224,169,73,0.05), transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    /* faint grid texture */
+    background-image:
+      linear-gradient(rgba(255,255,255,0.014) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+  }
+
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  header { margin-bottom: 44px; }
+
+  .eyebrow {
+    color: var(--mint);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--mint); box-shadow: 0 0 12px var(--mint);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  h1 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(40px, 7vw, 76px);
+    line-height: 0.98;
+    margin: 14px 0 0;
+    letter-spacing: -0.01em;
+  }
+  h1 em { font-style: italic; color: var(--amber); }
+
+  .lede {
+    color: var(--muted);
+    max-width: 660px;
+    margin-top: 18px;
+    font-size: 13.5px;
+  }
+  .lede a { color: var(--mint); text-decoration: none; border-bottom: 1px dotted var(--mint-dim); }
+  .lede code {
+    color: var(--ink); background: var(--panel-2);
+    padding: 1px 6px; border-radius: 3px; border: 1px solid var(--line); font-size: 12px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 20px 24px;
+    display: flex; flex-direction: column;
+    opacity: 0; transform: translateY(14px);
+    animation: rise 0.6s cubic-bezier(.2,.7,.2,1) forwards;
+    position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
+    background: linear-gradient(90deg, var(--mint), transparent 70%);
+    opacity: 0.6;
+  }
+  .card:nth-child(1){ animation-delay: .05s; }
+  .card:nth-child(2){ animation-delay: .15s; }
+  .card:nth-child(3){ animation-delay: .25s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  .tag {
+    font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--mint-dim); font-weight: 700;
+  }
+  .card h2 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400; font-size: 27px; margin: 6px 0 2px;
+  }
+  .iface {
+    font-size: 11px; color: var(--muted); margin-bottom: 16px;
+  }
+  .iface b { color: var(--amber); font-weight: 500; }
+
+  label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
+
+  textarea, input[type="text"], select {
+    width: 100%; margin-top: 7px; margin-bottom: 14px;
+    background: #0c100e; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 3px;
+    font-family: inherit; font-size: 13px; padding: 10px 12px; resize: vertical;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  textarea:focus, input:focus, select:focus {
+    outline: none; border-color: var(--mint-dim);
+    box-shadow: 0 0 0 3px rgba(116,224,164,0.08);
+  }
+  textarea { min-height: 92px; }
+
+  .file-drop {
+    margin-top: 7px; margin-bottom: 14px;
+    border: 1px dashed var(--line); border-radius: 3px;
+    padding: 18px; text-align: center; color: var(--muted);
+    cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+    font-size: 12px;
+  }
+  .file-drop:hover, .file-drop.over { border-color: var(--mint-dim); color: var(--ink); background: #0c120f; }
+  .file-drop b { color: var(--mint); }
+  input[type="file"] { display: none; }
+
+  button.run {
+    margin-top: auto;
+    background: var(--mint); color: #06140d;
+    border: none; border-radius: 3px;
+    font-family: inherit; font-weight: 700; font-size: 12px;
+    letter-spacing: .08em; text-transform: uppercase;
+    padding: 12px 16px; cursor: pointer;
+    transition: transform .1s, box-shadow .2s, background .2s;
+  }
+  button.run:hover { box-shadow: 0 6px 22px rgba(116,224,164,0.22); transform: translateY(-1px); }
+  button.run:active { transform: translateY(0); }
+  button.run:disabled { background: var(--mint-dim); cursor: progress; opacity: .8; box-shadow: none; transform: none; }
+
+  .out {
+    margin-top: 16px; min-height: 8px;
+    border-top: 1px solid var(--line); padding-top: 14px;
+    display: none;
+  }
+  .out.show { display: block; }
+  .out img { width: 100%; border-radius: 3px; border: 1px solid var(--line); display: block; }
+  .out .transcript {
+    background: #0c100e; border: 1px solid var(--line); border-radius: 3px;
+    padding: 12px; font-size: 13px; white-space: pre-wrap; color: var(--ink);
+  }
+  .out audio { width: 100%; margin-top: 4px; }
+  .out .dl { display: inline-block; margin-top: 10px; font-size: 11px; color: var(--mint);
+            text-decoration: none; border-bottom: 1px dotted var(--mint-dim); }
+
+  .err { color: var(--danger); font-size: 12px; }
+
+  .spinner {
+    display: inline-block; width: 12px; height: 12px; vertical-align: -1px;
+    border: 2px solid rgba(255,255,255,0.25); border-top-color: #06140d;
+    border-radius: 50%; animation: spin .7s linear infinite; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    margin-top: 46px; color: var(--muted); font-size: 11.5px;
+    border-top: 1px solid var(--line); padding-top: 18px; line-height: 1.8;
+  }
+  footer b { color: var(--ink); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Spring AI · Portable Model API</div>
+    <h1>Multimodal <em>Bench</em></h1>
+    <p class="lede">
+      Three of Spring AI's model abstractions, exercised through a single page.
+      The framework ships no Google adapter for any of these, so each one is a
+      hand-written implementation of a Spring AI interface, backed by
+      <a href="https://ai.google.dev/" target="_blank" rel="noreferrer">Gemini</a>.
+      Set <code>GEMINI_API_KEY</code> in <code>.env</code> and run.
+    </p>
+  </header>
+
+  <div class="grid">
+
+    <!-- Text -> Image -->
+    <section class="card">
+      <span class="tag">01 · Text → Image</span>
+      <h2>Generate</h2>
+      <p class="iface">impl of <b>org.springframework.ai.image.ImageModel</b></p>
+      <label for="img-prompt">Prompt</label>
+      <textarea id="img-prompt" placeholder="a lighthouse made of stacked books, watercolor, dusk">a lighthouse made of stacked books, watercolor, dusk</textarea>
+      <button class="run" id="img-btn">Render image</button>
+      <div class="out" id="img-out"></div>
+    </section>
+
+    <!-- Audio -> Text -->
+    <section class="card">
+      <span class="tag">02 · Audio → Text</span>
+      <h2>Transcribe</h2>
+      <p class="iface">impl of <b>org.springframework.ai…TranscriptionModel</b></p>
+      <label>Audio file</label>
+      <div class="file-drop" id="drop">
+        Drop an audio file or <b>browse</b><br />
+        <span id="file-name" style="font-size:11px;">wav · mp3 · m4a · ogg · webm</span>
+      </div>
+      <input type="file" id="audio-file" accept="audio/*" />
+      <button class="run" id="tx-btn">Transcribe</button>
+      <div class="out" id="tx-out"></div>
+    </section>
+
+    <!-- Text -> Speech -->
+    <section class="card">
+      <span class="tag">03 · Text → Speech</span>
+      <h2>Speak</h2>
+      <p class="iface">mirror of <b>org.springframework.ai…TextToSpeechModel</b></p>
+      <label for="tts-text">Text</label>
+      <textarea id="tts-text" placeholder="Say cheerfully: Spring AI makes providers swappable.">Say cheerfully: Spring AI makes providers swappable.</textarea>
+      <label for="tts-voice">Voice</label>
+      <select id="tts-voice">
+        <option value="">default (Kore)</option>
+        <option value="Puck">Puck</option>
+        <option value="Charon">Charon</option>
+        <option value="Fenrir">Fenrir</option>
+        <option value="Aoede">Aoede</option>
+        <option value="Leda">Leda</option>
+      </select>
+      <button class="run" id="tts-btn">Synthesize</button>
+      <div class="out" id="tts-out"></div>
+    </section>
+
+  </div>
+
+  <footer>
+    <b>What's happening:</b> every request hits a controller that depends only on a Spring AI
+    interface — the Gemini provider is injected, never referenced by callers. Swap in
+    <b>OpenAiImageModel</b> or <b>OpenAiAudioTranscriptionModel</b> and the controllers wouldn't change a line.<br />
+    <b>Note:</b> Claude / Anthropic models can't power any of these — they're text + vision only.
+  </footer>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function busy(btn, label) {
+    btn.disabled = true;
+    btn.dataset.label = btn.textContent;
+    btn.innerHTML = '<span class="spinner"></span>' + label;
+  }
+  function done(btn) {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.label;
+  }
+  function showErr(out, msg) {
+    out.classList.add('show');
+    out.innerHTML = '<div class="err">⚠ ' + msg + '</div>';
+  }
+
+  // ---- 01 Image ----
+  $('img-btn').addEventListener('click', async () => {
+    const out = $('img-out'), btn = $('img-btn');
+    const prompt = $('img-prompt').value.trim();
+    if (!prompt) return showErr(out, 'Enter a prompt.');
+    busy(btn, 'Rendering');
+    out.classList.remove('show'); out.innerHTML = '';
+    try {
+      const res = await fetch('/api/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      out.classList.add('show');
+      out.innerHTML = '<img alt="generated" src="data:' + data.mimeType + ';base64,' + data.b64 + '" />';
+    } catch (e) { showErr(out, e.message); }
+    finally { done(btn); }
+  });
+
+  // ---- 02 Transcribe ----
+  const drop = $('drop'), fileInput = $('audio-file');
+  drop.addEventListener('click', () => fileInput.click());
+  ['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; updateName(); } });
+  fileInput.addEventListener('change', updateName);
+  function updateName() {
+    const f = fileInput.files[0];
+    $('file-name').textContent = f ? f.name : 'wav · mp3 · m4a · ogg · webm';
+  }
+
+  $('tx-btn').addEventListener('click', async () => {
+    const out = $('tx-out'), btn = $('tx-btn');
+    const f = fileInput.files[0];
+    if (!f) return showErr(out, 'Choose an audio file first.');
+    busy(btn, 'Transcribing');
+    out.classList.remove('show'); out.innerHTML = '';
+    try {
+      const form = new FormData();
+      form.append('file', f);
+      const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || res.statusText);
+      out.classList.add('show');
+      out.innerHTML = '<div class="transcript">' + escapeHtml(data.text) + '</div>';
+    } catch (e) { showErr(out, e.message); }
+    finally { done(btn); }
+  });
+
+  // ---- 03 Speech ----
+  $('tts-btn').addEventListener('click', async () => {
+    const out = $('tts-out'), btn = $('tts-btn');
+    const text = $('tts-text').value.trim();
+    const voice = $('tts-voice').value;
+    if (!text) return showErr(out, 'Enter some text.');
+    busy(btn, 'Synthesizing');
+    out.classList.remove('show'); out.innerHTML = '';
+    try {
+      const res = await fetch('/api/speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice })
+      });
+      if (!res.ok) {
+        let msg = res.statusText;
+        try { msg = (await res.json()).error || msg; } catch (_) {}
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      out.classList.add('show');
+      out.innerHTML =
+        '<audio controls autoplay src="' + url + '"></audio>' +
+        '<a class="dl" download="speech.wav" href="' + url + '">download .wav</a>';
+    } catch (e) { showErr(out, e.message); }
+    finally { done(btn); }
+  });
+
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+</script>
+</body>
+</html>
