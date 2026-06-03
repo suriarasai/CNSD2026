@@ -52,10 +52,6 @@ This protocol builds and deploys the application and database concurrently withi
 
 
 ```
-
-```text
-success
-
 ```powershell
 # 1. Provision environment configuration. Never commit the resulting .env file to version control.
 copy .env.example .env
