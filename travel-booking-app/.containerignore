@@ -1,0 +1,55 @@
+# Node/React or frontend dependencies
+node_modules
+dist
+build
+*.log
+
+# Python/Flask or backend dependencies
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.egg-info
+.eggs
+venv/
+.env
+.venv
+
+# Common environment files
+.env
+*.env
+*.flaskenv
+*.local
+
+# Editor/IDE settings
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS system files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Tests and coverage
+coverage/
+*.cover
+*.pyc
+*.pkl
+*.pid
+*.seed
+*.lcov
+.nyc_output
+htmlcov/
+
+# Container-specific
+*.tar
+*.pid
+*.sock

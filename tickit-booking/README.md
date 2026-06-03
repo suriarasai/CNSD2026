@@ -1,196 +1,195 @@
-# TickIt — Containerized Ticket Booking Backend (Maven)
+# TickIt: Containerized Ticket Booking Backend Architecture
 
-A Spring Boot 3.5 + Thymeleaf + PostgreSQL 16 ticket-booking application, built to
-the project's 12-Factor IaC conventions and orchestrated with **Podman Desktop** on
-Windows 11. It implements three user stories — browse events, book tickets (with
-pessimistic locking to prevent overbooking), and cancel a booking (releasing seats).
+This repository contains a Spring Boot 3.5 application utilizing Thymeleaf and PostgreSQL 16, designed to facilitate ticket booking operations. The architecture adheres strictly to the Twelve-Factor App methodology for Infrastructure as Code (IaC) and is orchestrated via Podman Desktop within a Windows 11 environment. 
 
-Both a server-rendered **Thymeleaf UI** and a **REST API** (`/api/v1/...`) are exposed,
-sharing one Controller → Service → Repository stack.
+The system implements three primary user stories: browsing available events, processing ticket reservations (employing pessimistic locking mechanisms to mitigate race conditions and prevent overbooking), and executing booking cancellations with automated seat reallocation. The application exposes both a server-side rendered Thymeleaf User Interface (UI) and a RESTful Application Programming Interface (API) at the `/api/v1/` standard routing path, both of which utilize a unified Controller, Service, and Repository architectural pattern.
 
-> Build tool: **Maven** (wrapper included — no local Maven install needed).
+Build automation is managed via Maven. A Maven wrapper is included within the repository, eliminating the prerequisite for a local Maven installation.
 
 ---
 
-## Tech stack
-| | |
+## Technology Stack
+
+| Component | Specification |
 |---|---|
-| Java | 21 |
-| Framework | Spring Boot 3.5.x (Web, Thymeleaf, Data JPA, Validation, Actuator) |
-| Database | PostgreSQL 16 (Alpine) |
-| Migrations | Flyway (`src/main/resources/db/migration`) |
-| Build | Maven (`mvnw` wrapper) |
-| Containers | Podman Desktop / OCI, single `docker-compose.yml` |
-| Tests | JUnit 5 + Mockito (unit) and Testcontainers (integration) |
+| Runtime Environment | Java 21 |
+| Core Framework | Spring Boot 3.5.x (Web, Thymeleaf, Data JPA, Validation, Actuator) |
+| Relational Database | PostgreSQL 16 (Alpine Linux distribution) |
+| Database Migrations | Flyway (Located in `src/main/resources/db/migration`) |
+| Build Automation | Maven (via `mvnw` wrapper) |
+| Containerization | Podman Desktop / OCI, utilizing a unified `docker-compose.yml` |
+| Testing Frameworks | JUnit 5 and Mockito (Unit), Testcontainers (Integration) |
 
 ---
 
-## Lombok setup (important if your IDE shows errors)
+## Integrated Development Environment (IDE) Configuration for Lombok
 
-This project uses Lombok (`@Getter`, `@Builder`, `@RequiredArgsConstructor`, `@Slf4j`, …).
-The Maven build is already configured to run the Lombok annotation processor, so
-`.\mvnw.cmd clean package` works from the command line with no extra steps.
+This project utilizes the Lombok library to generate boilerplate code (e.g., `@Getter`, `@Builder`, `@RequiredArgsConstructor`, `@Slf4j`). The Maven build lifecycle is pre-configured to execute the Lombok annotation processor. Consequently, executing `.\\mvnw.cmd clean package` from the command-line interface will succeed without further configuration.
 
-Your **IDE** needs Lombok enabled separately, or it will report errors like
-*"log cannot be resolved"*, *"builder() is undefined"*, or *"blank final field … may
-not have been initialized"* even though the Maven build succeeds:
+However, your IDE requires explicit Lombok integration. Failure to enable this will result in compilation errors within the editor (e.g., unrecognized variables or undefined builder methods), despite a successful Maven build. 
 
-- **Eclipse / Spring Tool Suite (STS):** Lombok must be installed into the IDE itself.
-  Locate the lombok jar (after a build it's at
-  `%USERPROFILE%\.m2\repository\org\projectlombok\lombok\<version>\lombok-<version>.jar`),
-  then run `java -jar lombok-<version>.jar`. The installer detects your Eclipse/STS
-  installation — click *Install / Update*, then **restart the IDE** and do
-  *Project → Clean*. (Equivalent to patching `eclipse.ini` with the lombok javaagent.)
-- **IntelliJ IDEA:** install the *Lombok* plugin (bundled in recent versions) and enable
-  *Settings → Build, Execution, Deployment → Compiler → Annotation Processors →
-  Enable annotation processing*.
-- **VS Code:** install the *Lombok Annotations Support* extension (or it ships with the
-  Extension Pack for Java), then reload the window.
+Please follow the configuration protocol for your specific IDE:
 
-To confirm it's purely an IDE issue, run `.\mvnw.cmd clean compile` — if that succeeds,
-the code is fine and only the editor needs Lombok enabled.
+* **Eclipse / Spring Tool Suite (STS):** The Lombok agent must be installed into the IDE executable. Locate the Lombok Java Archive (JAR) file, typically found post-build at `%USERPROFILE%\\.m2\\repository\\org\\projectlombok\\lombok\\<version>\\lombok-<version>.jar`. Execute this file via `java -jar lombok-<version>.jar`. The installer will detect your IDE installation. Select *Install / Update*, restart the IDE, and execute a *Project* > *Clean* operation.
+* **IntelliJ IDEA:** Install the *Lombok* plugin (bundled in recent IDE versions). Navigate to *Settings* > *Build, Execution, Deployment* > *Compiler* > *Annotation Processors* and select *Enable annotation processing*.
+* **Visual Studio Code (VS Code):** Install the *Lombok Annotations Support* extension (often included in the Extension Pack for Java), and proceed to reload the application window.
+
+To verify that any encountered errors are isolated to the IDE environment, execute `.\\mvnw.cmd clean compile`. A successful compilation confirms the integrity of the codebase.
 
 ---
 
-## Prerequisites
-- **Podman Desktop** running on Windows 11 (Docker Compose syntax is supported by `podman compose`).
-- JDK 21 only needed if you want to run the app outside a container (Option B).
-- No local Maven required — `mvnw` / `mvnw.cmd` downloads the right version on first run.
+## System Prerequisites
+
+* **Podman Desktop:** Must be operational on Windows 11. Note that Docker Compose syntax is fully supported via the `podman compose` command.
+* **Java Development Kit (JDK) 21:** Required only if executing the application on the host machine outside of a container environment (Deployment Protocol B).
+* **Maven:** No local installation is required. The `mvnw` or `mvnw.cmd` scripts will automatically provision the correct version upon initial execution.
 
 ---
 
-## Quick start (Option A — full stack in Podman)
+## Deployment Protocol A: Full Stack Containerization
 
-```powershell
-# 1. Provide configuration/secrets (Factor III). Never commit the resulting .env.
-copy .env.example .env
+This protocol builds and deploys the application and database concurrently within containerized environments.
 
-# 2. Build and start app + database together.
-podman compose up --build
+
 ```
 
-- App UI:        http://localhost:8080/
-- REST events:   http://localhost:8080/api/v1/events
-- Health:        http://localhost:8080/actuator/health
+```text
+success
 
-The database container comes up first; the app waits for its `pg_isready`
-health check before starting (Factor IX). Flyway then creates the schema and
-seeds demo events automatically at boot (Factor XII).
+```powershell
+# 1. Provision environment configuration. Never commit the resulting .env file to version control.
+copy .env.example .env
 
-Stop with `Ctrl+C`, then `podman compose down` (add `-v` to also drop the data volume).
+# 2. Build and initialize the application and database containers.
+podman compose up --build
+
+```
+
+**Routing Endpoints:**
+
+* Application UI: `http://localhost:8080/`
+* REST API (Events): `http://localhost:8080/api/v1/events`
+* Actuator Health Check: `http://localhost:8080/actuator/health`
+
+**Initialization Sequence:**
+The database container initializes first. The application container incorporates a readiness probe and will wait for a successful `pg_isready` health check before booting (Factor IX). Upon application startup, Flyway automatically executes schema creation and data seeding (Factor XII).
+
+To terminate the process, issue an interrupt signal (`Ctrl+C`), followed by `podman compose down`. Append the `-v` flag to purge the persistent data volume.
 
 ---
 
-## Quick start (Option B — DB in Podman, app on host)
+## Deployment Protocol B: Hybrid Execution
 
-Useful for fast iteration in your IDE.
+This protocol is recommended for iterative development, isolating the database within a container while executing the application directly on the host operating system.
 
 ```powershell
-# Start only PostgreSQL in a container, persisting data to a named volume.
+# Initialize the PostgreSQL container, persisting data to an explicitly named volume.
 podman run -d --name tickit-db `
   -e POSTGRES_DB=tickit -e POSTGRES_USER=tickit -e POSTGRES_PASSWORD=tickit `
   -p 5432:5432 `
   -v tickit-pgdata:/var/lib/postgresql/data `
   postgres:16-alpine
 
-# Run the app (uses the localhost defaults in application.yml).
-.\mvnw.cmd spring-boot:run
+# Execute the application (utilizes the localhost defaults defined in application.yml).
+.\\mvnw.cmd spring-boot:run
+
 ```
 
-Connection string pattern: `jdbc:postgresql://localhost:5432/tickit`
+**Database Connection String:** `jdbc:postgresql://localhost:5432/tickit`
 
 ---
 
-## Building and running the tests
+## Compilation and Test Execution Protocols
 
 ```powershell
-# Build the bootable jar (skips tests)
-.\mvnw.cmd clean package -DskipTests
+# Compile the executable artifact (bypassing test execution)
+.\\mvnw.cmd clean package -DskipTests
 
-# Run all tests
-.\mvnw.cmd test
+# Execute the comprehensive test suite
+.\\mvnw.cmd test
 
-# Run only the fast unit tests (no container engine needed)
-.\mvnw.cmd test -Dtest=BookingServiceTest
+# Execute isolated unit tests (container runtime not required)
+.\\mvnw.cmd test -Dtest=BookingServiceTest
+
 ```
 
-- **`BookingServiceTest`** — pure unit tests (Mockito), no container needed. Cover
-  seat decrement, overbooking rejection, and seat release on cancel.
-- **`BookingIntegrationTest`** — full-stack tests against a real PostgreSQL 16
-  container via Testcontainers. **Requires Podman/Docker running.** Includes a
-  10-thread concurrency test proving the pessimistic write lock prevents overbooking.
+**Test Typologies:**
 
-> Testcontainers talks to a container engine over a socket. With Podman Desktop,
-> enable the Docker-compatible socket (Settings → "Docker compatibility"), or set
-> `DOCKER_HOST` to the Podman machine socket so Testcontainers can find it.
+* **`BookingServiceTest`:** Isolated unit tests utilizing Mockito. No container engine is required. These verify domain logic including seat decrement calculation, overbooking rejection, and seat release during cancellation.
+* **`BookingIntegrationTest`:** Full-stack integration tests executed against an ephemeral PostgreSQL 16 container provisioned via Testcontainers. **Requires an active Podman or Docker runtime.** This includes a concurrent thread execution test to validate the efficacy of the pessimistic write lock against race conditions.
 
-The bootable jar is produced at `target/tickit-booking-0.0.1-SNAPSHOT.jar` and can be
-run directly with `java -jar target/tickit-booking-0.0.1-SNAPSHOT.jar`.
+**Note on Testcontainers:** The framework communicates with the container engine via a socket interface. When utilizing Podman Desktop, ensure the Docker-compatible socket is enabled (*Settings* > *Docker compatibility*), or explicitly define the `DOCKER_HOST` environment variable to point to the Podman machine socket.
+
+The compilation process outputs an executable Java Archive at `target/tickit-booking-0.0.1-SNAPSHOT.jar`, which can be executed directly via `java -jar target/tickit-booking-0.0.1-SNAPSHOT.jar`.
 
 ---
 
-## API reference
+## Application Programming Interface (API) Specification
 
-| Method | Path | Story | Notes |
-|---|---|---|---|
-| `GET` | `/api/v1/events` | US1 | Upcoming, non-sold-out events |
-| `POST` | `/api/v1/bookings` | US2 | Body: `{eventId, customerName, customerEmail, quantity}` |
-| `DELETE` | `/api/v1/bookings/{id}` | US3 | Releases seats |
-| `GET` | `/api/v1/bookings?email=` | — | Bookings for a customer |
+| HTTP Method | Endpoint Route | Associated User Story | Functional Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/events` | US1 | Retrieves upcoming events with available capacity. |
+| `POST` | `/api/v1/bookings` | US2 | Processes a booking. Expected payload: `{eventId, customerName, customerEmail, quantity}` |
+| `DELETE` | `/api/v1/bookings/{id}` | US3 | Cancels a booking and reallocates reserved seats. |
+| `GET` | `/api/v1/bookings?email=` | N/A | Retrieves historical booking records for a specified customer. |
 
-Example:
+**Execution Example:**
+
 ```powershell
 curl -X POST http://localhost:8080/api/v1/bookings `
   -H "Content-Type: application/json" `
   -d '{"eventId":1,"customerName":"Jane","customerEmail":"jane@example.com","quantity":2}'
+
 ```
 
 ---
 
-## How the 12-Factor conventions are applied
+## Implementation of the Twelve-Factor App Methodology
 
-| Factor | Where |
-|---|---|
-| I Codebase | One `docker-compose.yml`; no env-specific copies |
-| II Dependencies | Pinned tags (`postgres:16-alpine`, `maven:3.9.9-eclipse-temurin-21`, `eclipse-temurin:21-jre-jammy`) |
-| III Config | All secrets in `.env` (git-ignored); read via env vars |
-| IV Backing services | DB attached via `SPRING_DATASOURCE_URL` |
-| V Build/Release/Run | Multi-stage `Dockerfile` |
-| VI Processes | Stateless app; runs as non-root; no local session files |
-| VII Port binding | `8080:8080` |
-| VIII Concurrency | Stateless process scales horizontally (`podman compose up --scale app=N`*) |
-| IX Disposability | `pg_isready` + actuator health checks; graceful shutdown |
-| X Dev/prod parity | Same image & PostgreSQL 16 in tests (Testcontainers) and runtime |
-| XI Logs | Logback to stdout/stderr only |
-| XII Admin processes | Flyway migrations run as an automated boot hook |
+| Factor | Implementation Strategy |
+| --- | --- |
+| I. Codebase | Utilizes a unified `docker-compose.yml`; avoids environment-specific codebase forks. |
+| II. Dependencies | Employs pinned dependency tags (e.g., `postgres:16-alpine`, `maven:3.9.9-eclipse-temurin-21`). |
+| III. Config | Isolates sensitive variables in a `.env` file (excluded from version control); ingested via environment variables. |
+| IV. Backing Services | Connects the database via the `SPRING_DATASOURCE_URL` abstraction. |
+| V. Build, Release, Run | Utilizes a multi-stage `Dockerfile` to separate the build context from the runtime environment. |
+| VI. Processes | Maintains a stateless application architecture; operates under non-root permissions; avoids local session storage. |
+| VII. Port Binding | Maps external port `8080` to internal container port `8080`. |
+| VIII. Concurrency | Facilitates horizontal scaling of the stateless process (e.g., `podman compose up --scale app=N`*). |
+| IX. Disposability | Implements `pg_isready` probes, Spring Actuator health checks, and graceful shutdown procedures. |
+| X. Dev/Prod Parity | Maintains identical base images and database versions (PostgreSQL 16) across testing and runtime environments. |
+| XI. Logs | Directs application logging exclusively to standard output (stdout) and standard error (stderr) streams. |
+| XII. Admin Processes | Executes Flyway database migrations as an automated initialization hook. |
 
-\* Remove the fixed `container_name` / host port mapping on `app` before scaling.
+** Note: To scale successfully, static `container_name` and host port mappings must be removed from the target container configuration.*
 
 ---
 
-## Project layout
-```
-pom.xml              Maven build
-mvnw / mvnw.cmd      Maven wrapper (.mvn/wrapper/maven-wrapper.properties)
+## Codebase Structure and Component Organization
+
+```text
+pom.xml              Maven Project Object Model (Build Configuration)
+mvnw / mvnw.cmd      Maven Wrapper Executables
 src/main/java/com/stc/tickit
-├── domain/        JPA entities (Event, Booking, AppUser, BookingStatus)
-├── repository/    Spring Data repos (pessimistic lock lives here)
-├── service/       EventService, BookingService (transaction boundaries)
-├── api/           REST controllers + @RestControllerAdvice error handler
-├── web/           Thymeleaf MVC controllers
-├── dto/           Request/response records + bean validation
-└── exception/     Domain exceptions + JSON error shape
+├── domain/        Java Persistence API (JPA) Entities (Event, Booking, AppUser)
+├── repository/    Spring Data Repositories (Housing the pessimistic lock queries)
+├── service/       Business Logic and Transaction Boundaries
+├── api/           REST Controllers and Global Exception Handling (@RestControllerAdvice)
+├── web/           Thymeleaf Model-View-Controller (MVC) Controllers
+├── dto/           Data Transfer Objects and Bean Validation Constraints
+└── exception/     Domain-Specific Exceptions and JSON Error Definitions
 src/main/resources
-├── db/migration/  Flyway V1 (schema) + V2 (seed)
-├── templates/     Thymeleaf views
-└── application.yml
+├── db/migration/  Flyway SQL Scripts (V1 Schema Initialization, V2 Data Seeding)
+├── templates/     Thymeleaf HTML Views
+└── application.yml  Application Configuration Properties
 src/test/java/com/stc/tickit
-├── service/       BookingServiceTest (Mockito)
-└── integration/   BookingIntegrationTest (Testcontainers)
+├── service/       Unit Testing Implementations (Mockito)
+└── integration/   Integration Testing Implementations (Testcontainers)
+
 ```
 
-## Tech Notes
-- Spring Boot version is set to `3.5.5` in `pom.xml`; bump the patch if a newer
-  3.5.x is available in your environment.
-- This demo keeps authentication out of scope; per the conventions, no credentials are
-  hardcoded — the DB password is injected from the environment and never stored in source.
+## Technical Addenda and System Constraints
+
+* The Spring Boot version is explicitly declared as `3.5.5` within the `pom.xml`. Administrators should increment the patch version if a more secure 3.5.x release becomes available in their operational environment.
+* User authentication mechanisms are outside the scope of this baseline architecture. Following security best practices, no credentials are hardcoded within the source; database initialization credentials are fundamentally decoupled and injected exclusively via the runtime environment.
+"""

@@ -1,0 +1,133 @@
+services:
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Containerfile
+    container_name: travel-nginx
+    ports:
+      - "8080:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - travel-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    container_name: travel-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8080/api
+    ports:
+      - "5173:5173"
+    networks:
+      - travel-network
+    restart: unless-stopped
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    container_name: travel-backend
+    environment:
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379/0
+      - MONGO_URL=mongodb://mongodb:27017/
+      - MONGO_DB=travel_booking
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - LOG_LEVEL=INFO
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+      - mongodb
+    networks:
+      - travel-network
+    restart: unless-stopped
+    volumes:
+      - ./backend/app:/app/app
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: travel-redis
+    ports:
+      - "6379:6379"
+    networks:
+      travel-network:
+        aliases:
+          - redis-server
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+      --bind 0.0.0.0
+      --port 6379
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mongodb:
+    image: docker.io/library/mongo:7
+    container_name: travel-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=travel_booking
+    networks:
+      - travel-network
+    volumes:
+      - mongodb-data:/data/db
+      - ./config/mongod.conf:/etc/mongod.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  monitoring:
+    build:
+      context: ./monitoring
+      dockerfile: Containerfile
+    container_name: travel-monitoring
+    ports:
+      - "8081:8081"
+    depends_on:
+      - backend
+      - redis
+      - mongodb
+    networks:
+      - travel-network
+    restart: unless-stopped
+
+networks:
+  travel-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  mongodb-data:

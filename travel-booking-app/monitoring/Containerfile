@@ -1,0 +1,11 @@
+FROM docker.io/library/python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install flask requests
+
+COPY healthcheck.py .
+
+EXPOSE 8081
+
+CMD ["python", "healthcheck.py"]

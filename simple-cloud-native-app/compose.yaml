@@ -1,0 +1,43 @@
+# simple-cloud-native-app/compose.yaml
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongo-db-container
+    ports:
+      - "27017:27017" # Expose MongoDB port to the host
+    volumes:
+      - mongo_data:/data/db # Persist MongoDB data
+    networks:
+      - app-network
+
+  backend:
+    build: ./backend
+    container_name: backend-service-container
+    ports:
+      - "3001:3001" # Map host port 3001 to container port 3001 (where Express runs)
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/taskdb # Backend connects to mongodb service on port 27017
+      - PORT=3001
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    container_name: frontend-service-container
+    ports:
+      - "3000:80" # Map host port 3000 to Nginx container port 80
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  mongo_data: # Define the named volume for MongoDB
+
+networks:
+  app-network:
+    driver: bridge

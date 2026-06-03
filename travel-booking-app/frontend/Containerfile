@@ -1,0 +1,21 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies - use npm install instead of npm ci
+RUN npm install
+
+# Copy application code
+COPY . .
+
+# Fix permissions on node_modules binaries
+RUN chmod -R +x node_modules/.bin/
+
+# Expose port
+EXPOSE 5173
+
+# Use npx to run vite (more reliable)
+CMD ["npx", "vite", "--host", "0.0.0.0"]

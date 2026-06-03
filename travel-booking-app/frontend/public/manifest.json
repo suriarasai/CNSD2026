@@ -1,0 +1,16 @@
+{
+  "name": "Travel Booking App",
+  "short_name": "TravelBook",
+  "description": "Book your travel easily",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1976d2",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
