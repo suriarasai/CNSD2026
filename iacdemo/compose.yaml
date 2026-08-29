@@ -1,0 +1,52 @@
+version: '3.8'
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
+
+services:
+  cache:
+    image: docker.io/library/redis:7-alpine
+    container_name: cache-db
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend-net
+    # Port 6379 is NOT exposed to host
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    container_name: backend-api
+    restart: always
+    environment:
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
+      - PORT=3000
+    networks:
+      - frontend-net
+      - backend-net
+    depends_on:
+      - cache
+
+  proxy:
+    image: docker.io/library/nginx:alpine
+    container_name: edge-proxy
+    restart: always
+    ports:
+      - "${HOST_PORT:-8080}:80"
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro,Z
+    networks:
+      - frontend-net
+    depends_on:
+      - backend
