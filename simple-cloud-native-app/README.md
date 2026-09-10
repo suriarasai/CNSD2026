@@ -4,7 +4,7 @@ This is a simple fullstack application built with a cloud-native approach, using
 
 ## Prerequisites
 
-- Podman 
+- Podman Desktop
 - Podman Compose
 
 ## Getting Started
