@@ -95,8 +95,17 @@ cloud-native-app/
 
 ## Quick start ( smoke test)
 
+Find the Podman VM IP Address**
+Open your terminal (macOS/Linux) or PowerShell (Windows) and run:
+```bash
+podman machine ssh ip -4 addr show eth0
+```
+
+Note the IP adress and use it in place of localhost while testing.
+
+
 ```powershell
-cd simple-cloud-native-app
+cd cloud-native-app
 # apply the one-line frontend change described in frontend/api-url.patch.md
 podman compose up -d --build
 Start-Sleep -Seconds 30
