@@ -1,0 +1,14 @@
+# flaky-service/Containerfile
+FROM docker.io/library/node:20-alpine AS deps
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm install --omit=dev && npm cache clean --force
+
+FROM docker.io/library/node:20-alpine AS runtime
+ENV NODE_ENV=production
+WORKDIR /usr/src/app
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --chown=node:node . .
+USER node
+EXPOSE 3002
+CMD ["node", "server.js"]

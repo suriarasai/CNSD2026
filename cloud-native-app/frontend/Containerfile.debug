@@ -1,0 +1,4 @@
+FROM docker.io/library/node:20-alpine
+WORKDIR /app
+COPY . .
+RUN find /app -maxdepth 2 -not -path '*/node_modules/*'

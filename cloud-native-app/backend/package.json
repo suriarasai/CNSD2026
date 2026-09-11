@@ -1,0 +1,23 @@
+{
+  "name": "backend",
+  "version": "2.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.80.0",
+    "connect-redis": "^8.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "express-session": "^1.19.0",
+    "mongoose": "^8.14.2",
+    "opossum": "^8.1.4",
+    "redis": "^4.7.1",
+    "winston": "^3.17.0"
+  }
+}

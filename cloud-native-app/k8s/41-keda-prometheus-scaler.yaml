@@ -1,0 +1,20 @@
+# Alternative KEDA trigger: scale on request rate measured by Prometheus,
+# which is the metric your users actually feel. Ties LAB 5 back into LAB 4.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: backend-rps-scaler
+  namespace: cnsd
+spec:
+  scaleTargetRef:
+    name: backend
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  pollingInterval: 10
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus.cnsd.svc.cluster.local:9090
+        threshold: "50"          # target requests/sec per replica
+        query: |
+          sum(rate(http_server_duration_milliseconds_count{service_name="backend"}[1m]))

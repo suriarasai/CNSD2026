@@ -1,0 +1,108 @@
+# compose.lab3.yaml — LAB 3 checkpoint: + chaos dependency, health gates, drain
+name: cnsd
+
+services:
+  gateway:
+    image: docker.io/library/caddy:2-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [edge]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    networks: [edge]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    environment:
+      PORT: "3001"
+      MONGO_URI: "mongodb://mongodb:27017/taskdb"
+      MONGO_TIMEOUT_MS: "3000"
+      VALKEY_URL: "redis://valkey:6379"
+      SESSION_SECRET: "cnsd-lab-secret-change-me"
+      RATING_URL: "http://flaky:3002"
+      RATING_TIMEOUT_MS: "400"
+      RATING_RETRIES: "2"
+      CACHE_TTL_SECONDS: "10"
+    networks: [edge, data]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3001/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    stop_grace_period: 15s
+    init: true
+    restart: unless-stopped
+
+  flaky:
+    build:
+      context: ./flaky-service
+      dockerfile: Containerfile
+    environment:
+      PORT: "3002"
+    networks: [edge]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3002/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m
+    stop_grace_period: 10s
+    init: true
+    restart: unless-stopped
+
+  mongodb:
+    image: docker.io/library/mongo:7
+    volumes:
+      - mongo_data:/data/db
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  valkey:
+    image: docker.io/valkey/valkey:8-alpine
+    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - valkey_data:/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  valkey_data:
+
+networks:
+  edge:
+  data:

@@ -1,0 +1,20 @@
+# gateway/Caddyfile  —  LAB 1 version (single backend, static upstream)
+{
+	admin :2019
+	auto_https off
+}
+
+:8080 {
+	log {
+		output stdout
+		format json
+	}
+
+	handle_path /api/* {
+		reverse_proxy backend:3001
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+}

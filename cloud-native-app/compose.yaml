@@ -1,0 +1,177 @@
+# compose.yaml — CNSD2026 cloud-native lab, FINAL state (Labs 1+2+3+4+5 stacked)
+# No `version:` key: it has been obsolete in the Compose Specification for years.
+name: cnsd
+
+x-otel-env: &otel-env
+  NODE_OPTIONS: "--require @opentelemetry/auto-instrumentations-node/register"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "otlp"
+  OTEL_LOGS_EXPORTER: "otlp"
+  OTEL_NODE_RESOURCE_DETECTORS: "env,host,os,container"
+  OTEL_RESOURCE_ATTRIBUTES: "service.namespace=cnsd,deployment.environment=lab"
+
+services:
+  # ---------------------------------------------------------------- LAB 1 ----
+  gateway:
+    image: docker.io/library/caddy:2-alpine
+    ports:
+      - "8080:8080" # the ONLY application port on the host
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [edge, obs]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:2019/metrics"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    networks: [edge]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: "backend"
+      PORT: "3001"
+      MONGO_URI: "mongodb://mongodb:27017/taskdb"
+      MONGO_TIMEOUT_MS: "3000"
+      VALKEY_URL: "redis://valkey:6379"
+      SESSION_SECRET: "cnsd-lab-secret-change-me"
+      RATING_URL: "http://flaky:3002"
+      RATING_TIMEOUT_MS: "400"
+      RATING_RETRIES: "2"
+      CACHE_TTL_SECONDS: "10"
+    networks: [edge, data, obs]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3001/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+    # LAB 2 — nothing writable except an explicit scratch tmpfs
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    # LAB 3 — give the process time to drain before SIGKILL
+    stop_grace_period: 15s
+    init: true
+    restart: unless-stopped
+    # LAB 4 — a bounded replica is a schedulable replica
+    mem_limit: 320m
+    cpus: 0.5
+    security_opt: ["no-new-privileges:true"]
+
+  # ---------------------------------------------------------------- LAB 2 ----
+  mongodb:
+    image: docker.io/library/mongo:7
+    # NOTE: no `ports:` — the database is not reachable from Windows at all.
+    volumes:
+      - mongo_data:/data/db
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  valkey:
+    image: docker.io/valkey/valkey:8-alpine
+    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - valkey_data:/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+
+  # ---------------------------------------------------------------- LAB 3 ----
+  flaky:
+    build:
+      context: ./flaky-service
+      dockerfile: Containerfile
+    environment:
+      <<: *otel-env
+      OTEL_SERVICE_NAME: "rating-service"
+      PORT: "3002"
+    networks: [edge, obs]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3002/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    read_only: true
+    tmpfs:
+      - /tmp:size=8m
+    stop_grace_period: 10s
+    init: true
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+
+  # ---------------------------------------------------------------- LAB 5 ----
+  otel-collector:
+    image: docker.io/otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    networks: [obs]
+    depends_on: [jaeger]
+    restart: unless-stopped
+
+  jaeger:
+    image: docker.io/jaegertracing/all-in-one:latest
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686" # Jaeger UI
+    networks: [obs]
+    restart: unless-stopped
+
+  prometheus:
+    image: docker.io/prom/prometheus:latest
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=1h"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prom_data:/prometheus
+    ports:
+      - "9090:9090" # Prometheus UI
+    networks: [obs]
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  valkey_data:
+  prom_data:
+
+networks:
+  edge: # gateway <-> app services
+  data: # app services <-> stateful backing services (no host exposure)
+  obs: # telemetry plane

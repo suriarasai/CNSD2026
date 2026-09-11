@@ -1,0 +1,70 @@
+# compose.lab2.yaml — LAB 2 checkpoint: + Valkey, named volumes, read-only rootfs
+name: cnsd
+
+services:
+  gateway:
+    image: docker.io/library/caddy:2-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [edge]
+    depends_on: [frontend, backend]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    networks: [edge]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    environment:
+      PORT: "3001"
+      MONGO_URI: "mongodb://mongodb:27017/taskdb"
+      VALKEY_URL: "redis://valkey:6379"
+      SESSION_SECRET: "cnsd-lab-secret-change-me"
+      CACHE_TTL_SECONDS: "10"
+    networks: [edge, data]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+
+  mongodb:
+    image: docker.io/library/mongo:7
+    volumes:
+      - mongo_data:/data/db
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  valkey:
+    image: docker.io/valkey/valkey:8-alpine
+    command: ["valkey-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - valkey_data:/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mongo_data:
+  valkey_data:
+
+networks:
+  edge:
+  data:

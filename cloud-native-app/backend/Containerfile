@@ -1,0 +1,21 @@
+# backend/Containerfile  —  LAB 1: small, reproducible, non-root
+# Stage 1: dependencies only, so app-code edits do not bust the npm cache layer
+FROM docker.io/library/node:20-alpine AS deps
+WORKDIR /usr/src/app
+COPY package*.json ./
+RUN npm install --omit=dev && npm cache clean --force
+
+# Stage 2: runtime. No build toolchain, no npm cache, no shell history.
+FROM docker.io/library/node:20-alpine AS runtime
+ENV NODE_ENV=production
+WORKDIR /usr/src/app
+
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+COPY --chown=node:node . .
+
+# Drop privileges INSIDE the image. Rootless Podman already unmaps you from
+# host root; this defends the container's own filesystem as well.
+USER node
+
+EXPOSE 3001
+CMD ["node", "server.js"]

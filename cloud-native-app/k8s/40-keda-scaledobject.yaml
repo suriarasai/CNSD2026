@@ -1,0 +1,21 @@
+# KEDA: scale on a BUSINESS signal (queue depth in Valkey), not on CPU.
+# This is the reactive/event-driven half of "cloud native autoscaling".
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: backend-queue-scaler
+  namespace: cnsd
+spec:
+  scaleTargetRef:
+    name: backend
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  pollingInterval: 5      # how often KEDA checks the trigger
+  cooldownPeriod: 60      # how long to wait before scaling back down
+  triggers:
+    - type: redis          # Valkey speaks the Redis protocol
+      metadata:
+        address: valkey.cnsd.svc.cluster.local:6379
+        listName: work:queue
+        listLength: "20"   # target items per replica
+        enableTLS: "false"

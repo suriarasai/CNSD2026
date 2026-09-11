@@ -1,0 +1,49 @@
+# compose.lab1.yaml — LAB 1 checkpoint: orchestration only
+name: cnsd
+
+services:
+  gateway:
+    image: docker.io/library/caddy:2-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [edge]
+    depends_on: [frontend, backend]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    networks: [edge]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Containerfile
+    environment:
+      PORT: "3001"
+      MONGO_URI: "mongodb://mongodb:27017/taskdb"
+    networks: [edge, data]
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  mongodb:
+    image: docker.io/library/mongo:7
+    volumes:
+      - mongo_data:/data/db
+    networks: [data]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+volumes:
+  mongo_data:
+
+networks:
+  edge:
+  data:
