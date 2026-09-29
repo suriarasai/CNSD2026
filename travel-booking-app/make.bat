@@ -49,16 +49,19 @@ goto :eof
 :build
 echo Building containers...
 podman compose build
+if errorlevel 1 exit /b 1
 goto :eof
 
 :up
 echo Starting services...
 podman compose up -d
+if errorlevel 1 exit /b 1
 echo.
 echo Services started!
 echo Frontend: http://localhost:8080
 echo Backend API: http://localhost:8080/api
 echo Monitoring: http://localhost:8081
+echo If localhost is unreachable, see README step 7 for your Podman machine's WSL IP.
 goto :eof
 
 :down
@@ -86,8 +89,8 @@ goto :eof
 
 :clean
 echo Cleaning up...
-podman compose down -v
-podman rmi travel-booking-app-frontend travel-booking-app-backend travel-booking-app-nginx travel-booking-app-monitoring 2>nul
+podman compose down -v --rmi local
+if errorlevel 1 exit /b 1
 echo Cleanup complete!
 goto :eof
 

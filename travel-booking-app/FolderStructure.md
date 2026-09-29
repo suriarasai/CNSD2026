@@ -22,7 +22,7 @@ travel-booking-app/
 │   ├── vite.config.js
 │   ├── package.json
 │   ├── Containerfile
-│   └── .env.development
+│   └── .env.development.example
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
@@ -33,7 +33,7 @@ travel-booking-app/
 │   ├── requirements.txt
 │   ├── wsgi.py
 │   ├── Containerfile
-│   └── .env
+│   └── .env (optional, local only)
 ├── nginx/
 │   ├── nginx.conf
 │   └── Containerfile
@@ -43,8 +43,9 @@ travel-booking-app/
 │   ├── redis.conf
 │   └── mongod.conf
 ├── compose.yaml
-├── .env
+├── .env (optional, local only)
 ├── make.bat
+├── make.sh
 └── README.md
 ```
 

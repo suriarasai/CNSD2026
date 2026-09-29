@@ -1,6 +1,6 @@
 # Travel Booking Application
 
-A full-stack travel booking application built with React (frontend) and Flask (backend), containerized using Podman for local development on Windows 11.
+A full-stack travel booking application built with React (frontend) and Flask (backend), containerized using Podman for local development on Windows and macOS.
 
 ## Project Overview
 
@@ -23,7 +23,7 @@ This application allows users to create, view, and manage travel bookings. It fo
 **Infrastructure:**
 - Podman containers
 - Nginx reverse proxy
-- Docker Compose (podman-compose) orchestration
+- Podman Compose orchestration (using an installed Compose provider)
 - Health monitoring service
 
 ## Container Architecture
@@ -102,52 +102,63 @@ User Request → Nginx (8080) → Backend API (5000)
 ## Setup and Installation
 
 ### Prerequisites
-- Windows 11
-- Podman Desktop installed
+- Windows 11 or macOS
+- Podman installed (with a running Podman machine on Windows/macOS)
+- A Compose provider available to `podman compose` (for example, Docker Compose)
 - Git (for cloning repository)
 
 ### Installation Steps
 
-1. Clone or create the project directory structure
-2. Navigate to project root
-3. Initialize the project:
-```batch
-make.bat init
+1. Clone the repository and open a terminal in the project root.
+2. Start Podman (if needed):
+```sh
+podman machine start
+```
+   If no machine exists, run `podman machine init` first. Install a Compose provider for `podman compose` (Docker Compose or `podman-compose`). Podman installed directly inside WSL does not need a machine.
+3. Initialize, build, and start the project:
+
+   **Windows PowerShell:**
+```powershell
+.\make.bat init
+.\make.bat build
+.\make.bat up
 ```
 
-4. Build all containers:
-```batch
-make.bat build
+   **macOS Terminal:**
+```sh
+./make.sh init
+./make.sh build
+./make.sh up
 ```
 
-5. Start all services:
-```batch
-make.bat up
-```
+4. Check status with `.\make.bat status` or `./make.sh status`; initial database startup can take longer than 30 seconds.
 
-6. Wait 30 seconds for all services to initialize
+5. Access the application:
+   - Frontend: http://localhost:8080
+   - Bookings API through Nginx: http://localhost:8080/api/bookings
+   - Backend health endpoint directly: http://localhost:5000/health
+   - Monitoring: http://localhost:8081/health
 
-7. Access the application:
-- Frontend: http://localhost:8080
-- Backend API: http://localhost:5000
-- Monitoring: http://localhost:8081
+   On Windows, if `localhost` is unreachable, run `podman machine ssh "ip -4 -o addr show eth0"` and substitute your machine's IP (after `inet`, without the subnet suffix) for `localhost`. The IP may change when the machine restarts. The frontend uses `/api` on the same host as the page.
 
 ## Available Commands
 
-### make.bat Commands
+### Development commands
 
-```batch
-make.bat help            Show all available commands
-make.bat build           Build all container images
-make.bat up              Start all services in detached mode
-make.bat down            Stop all services
-make.bat restart         Restart all services
-make.bat logs            Show logs for all services (follow mode)
-make.bat status          Display status of all containers
-make.bat clean           Remove all containers, volumes, and images
-make.bat shell-backend   Open interactive shell in backend container
-make.bat shell-frontend  Open interactive shell in frontend container
-make.bat test            Run backend tests
+Run from the project root. In Windows PowerShell, use `.\make.bat`; on macOS or Ubuntu WSL, use `./make.sh`. Both scripts accept the same commands:
+
+```powershell
+.\make.bat help            # Show all available commands
+.\make.bat build           # Build all container images
+.\make.bat up              # Start all services in detached mode
+.\make.bat down            # Stop all services
+.\make.bat restart         # Restart all services
+.\make.bat logs            # Show logs for all services (follow mode)
+.\make.bat status          # Display status of all containers
+.\make.bat clean           # Remove containers, volumes, and local images
+.\make.bat shell-backend   # Open interactive shell in backend container
+.\make.bat shell-frontend  # Open interactive shell in frontend container
+.\make.bat test            # Run backend tests
 ```
 
 ## Monitoring and Logging
@@ -199,7 +210,7 @@ Expected Response:
 
 **View all container logs:**
 ```bash
-podman-compose logs -f
+podman compose logs -f
 ```
 
 **View specific container logs:**
@@ -299,12 +310,19 @@ podman exec travel-mongodb mongosh travel_booking --eval "db.bookings.countDocum
 curl http://localhost:5000/api/bookings
 ```
 
-**Create a new booking:**
-```bash
+**Create a new booking (macOS Terminal):**
+```sh
 curl -X POST http://localhost:5000/api/bookings \
   -H "Content-Type: application/json" \
-  -d "{\"destination\":\"Paris\",\"traveler_name\":\"John Doe\",\"start_date\":\"2025-10-01\",\"end_date\":\"2025-10-07\",\"num_travelers\":2}"
+  -d '{"destination":"Paris","traveler_name":"John Doe","start_date":"2026-10-01","end_date":"2026-10-07","num_travelers":2}'
 ```
+
+**Create a new booking (Windows PowerShell):**
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:5000/api/bookings -ContentType 'application/json' -Body '{"destination":"Paris","traveler_name":"John Doe","start_date":"2026-10-01","end_date":"2026-10-07","num_travelers":2}'
+```
+
+If Windows-to-WSL localhost forwarding is unavailable, use the address from installation step 5 instead of `localhost`.
 
 **Delete a booking (replace BOOKING_ID):**
 ```bash
@@ -339,18 +357,7 @@ podman exec travel-backend python -c "from pymongo import MongoClient; client=Mo
 
 Application-specific logs are stored in the `./logs` directory on the host machine.
 
-**View application log file:**
-```bash
-type logs\app.log
-tail -f logs/app.log
-```
-
-**Search logs for errors:**
-```bash
-findstr /i "error" logs\app.log
-findstr /i "redis" logs\app.log
-findstr /i "mongodb" logs\app.log
-```
+To follow backend logs on either platform: `podman logs -f travel-backend`.
 
 ## Troubleshooting
 
@@ -372,13 +379,21 @@ podman exec travel-mongodb mongosh --eval "db.adminCommand('ping')"
 
 ### Network Issues
 
-Recreate network:
+Recreate the Compose-managed network:
 ```bash
-podman-compose down
-podman network rm travel-network
-podman network create travel-network
-podman-compose up -d
+podman compose down
+podman compose up -d
 ```
+
+### Build fails while pulling images
+
+If pulling from `docker.io` fails with `invalid username/password`, refresh your Docker Hub login (`podman login docker.io`, and Docker Desktop's sign-in if it supplies the Compose provider). For public images, remove stale credentials with `podman logout docker.io` or `docker logout` as appropriate, then retry the build.
+
+### Cannot connect to Podman
+
+On Windows and macOS, check `podman machine list` and run `podman machine start` if needed.
+
+Inside Ubuntu WSL, install `podman` and `podman-compose` with `sudo apt update && sudo apt install -y podman podman-compose`, then use `./make.sh`. If no systemd user bus is available, the script uses Ubuntu's rootful Podman via `sudo` and the project-local cgroupfs fallback. Stop any Windows Podman containers publishing the same ports before starting the Ubuntu instance.
 
 ### Cache Issues
 
@@ -389,12 +404,12 @@ podman exec travel-redis redis-cli FLUSHDB
 
 ### Complete Reset
 
-Stop everything and start fresh:
-```bash
-make.bat down
-make.bat clean
-make.bat build
-make.bat up
+Stop everything and start fresh (macOS/WSL: use `./make.sh` instead of `.\make.bat`):
+```powershell
+.\make.bat down
+.\make.bat clean
+.\make.bat build
+.\make.bat up
 ```
 
 ## 12-Factor App Compliance
@@ -403,7 +418,7 @@ This application follows the twelve-factor methodology:
 
 1. **Codebase:** Single repository with version control
 2. **Dependencies:** Explicitly declared in package.json and requirements.txt
-3. **Config:** Environment variables in .env files
+3. **Config:** Environment variables in `compose.yaml` (optionally overridden with a local `.env` file)
 4. **Backing Services:** MongoDB and Redis as attached resources
 5. **Build, Release, Run:** Separate stages via Containerfiles
 6. **Processes:** Stateless application processes
@@ -445,11 +460,13 @@ travel-booking-app/
 │   └── Containerfile       Monitoring container definition
 ├── config/                  Service configurations
 │   ├── redis.conf          Redis configuration
-│   └── mongod.conf         MongoDB configuration
+│   ├── mongod.conf         MongoDB configuration
+│   └── containers-wsl.conf WSL Podman cgroup fallback
 ├── logs/                    Application logs
 ├── compose.yaml            Container orchestration
-├── .env                    Environment variables
-├── make.bat                Build and deployment script
+├── .env                    Optional local environment overrides (not tracked)
+├── make.bat                Windows development commands
+├── make.sh                 macOS/WSL development commands
 └── README.md               This file
 ```
 
@@ -457,9 +474,9 @@ travel-booking-app/
 
 1. Make code changes in `frontend/src` or `backend/app`
 2. Changes are automatically reflected (hot reload enabled)
-3. Test changes in browser at http://localhost:8080
-4. Check logs if issues occur: `make.bat logs`
-5. Restart services if needed: `make.bat restart`
+3. Test changes in the browser using the frontend URL from installation step 5
+4. Check logs if issues occur: `.\make.bat logs` (Windows) or `./make.sh logs` (macOS)
+5. Restart services if needed: `.\make.bat restart` (Windows) or `./make.sh restart` (macOS)
 
 ## Data Persistence
 
@@ -475,7 +492,7 @@ podman exec travel-mongodb mongodump --db travel_booking --out /data/backup
 ## Security Notes
 
 This is a development environment. For production deployment:
-- Change SECRET_KEY in .env file
+- Set a unique `SECRET_KEY` through a local `.env` file or environment variable
 - Enable authentication for MongoDB and Redis
 - Use HTTPS with proper SSL certificates
 - Implement user authentication and authorization
