@@ -24,7 +24,7 @@ services:
       dockerfile: Containerfile
     container_name: travel-frontend
     environment:
-      - VITE_API_URL=http://localhost:8080/api
+      - VITE_API_URL=/api
     ports:
       - "5173:5173"
     networks:
@@ -58,7 +58,7 @@ services:
       - ./backend/app:/app/app
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health', timeout=5).close()"]
       interval: 30s
       timeout: 10s
       retries: 3
