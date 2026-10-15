@@ -44,17 +44,17 @@ Both approaches deploy the same conceptual 3-tier workload:
 
 * **Scenario:** A team is building an e-commerce platform with distinct backend services (e.g., Auth, Inventory, Payments) and a shared PostgreSQL/Redis datastore. Developers need to run the entire backend on their local machines during daily feature development.
 * **Why Compose Wins:**
-* **Network Isolation by Default:** You can define separate bridge networks (`internal-net` vs. `public-net`) to ensure payment services can talk to the database, but edge services cannot directly query persistence layers.
-* **Independent Lifecycles:** When a developer edits the Inventory service, only that specific container needs to be rebuilt and restarted (`podman compose restart inventory`) without restarting Auth, Payments, or the database.
-* **Low Cognitive Overhead:** Teams don't need to write boilerplate Kubernetes YAML (ConfigMaps, Pod specs, PVCs) when they just need a simple, multi-container environment up and running quickly.
+  * **Network Isolation by Default:** You can define separate bridge networks (`internal-net` vs. `public-net`) to ensure payment services can talk to the database, but edge services cannot directly query persistence layers.
+  * **Independent Lifecycles:** When a developer edits the Inventory service, only that specific container needs to be rebuilt and restarted (`podman compose restart inventory`) without restarting Auth, Payments, or the database.
+  * **Low Cognitive Overhead:** Teams don't need to write boilerplate Kubernetes YAML (ConfigMaps, Pod specs, PVCs) when they just need a simple, multi-container environment up and running quickly.
 
 **When Option B (Play Kube) Is Preferred: Production Parity and Sidecar Architecture**
 
 * **Scenario:** A platform engineering team is preparing a service to run on Amazon EKS, Azure AKS, or OpenShift. The service uses an Envoy proxy sidecar for mTLS/rate-limiting, a logging agent sidecar, and native Kubernetes ConfigMaps/Secrets for configuration injection.
 * **Why Play Kube Wins:**
-* **Validating Pod & Sidecar Semantics:** Because all containers in a Pod share the `localhost` network and lifecycle, developers can test traffic interception and shared IPC locally exactly as it executes in a real cluster.
-* **Direct Manifest Reuse (Shift-Left GitOps):** The exact YAML manifests tested on the laptop via `podman kube play` can be committed directly to Git and deployed via ArgoCD or Flux. Compose would require maintaining two divergent files: a `compose.yaml` for local dev and separate Helm charts/K8s manifests for production.
-* **Zero Cluster Overhead:** It tests production Kubernetes declarations locally without running resource-heavy local clusters like Minikube or Kind.
+  * **Validating Pod & Sidecar Semantics:** Because all containers in a Pod share the `localhost` network and lifecycle, developers can test traffic interception and shared IPC locally exactly as it executes in a real cluster.
+  * **Direct Manifest Reuse (Shift-Left GitOps):** The exact YAML manifests tested on the laptop via `podman kube play` can be committed directly to Git and deployed via ArgoCD or Flux. Compose would require maintaining two divergent files: a `compose.yaml` for local dev and separate Helm charts/K8s manifests for production.
+  * **Zero Cluster Overhead:** It tests production Kubernetes declarations locally without running resource-heavy local clusters like Minikube or Kind.
 
 ---
 
